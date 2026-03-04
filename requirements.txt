@@ -1,0 +1,47 @@
+# 音声認識
+faster-whisper>=1.0.3
+huggingface-hub>=0.22.0   # モデルダウンロード進捗表示用
+
+# PyTorch CUDA 12.1 対応版
+--extra-index-url https://download.pytorch.org/whl/cu121
+torch
+
+# CUDA 12 ランタイムライブラリ（cublas64_12.dll / libcublas.so.12）
+# Linux: pip がこれらを自動インストールする
+# Windows: CUDA Toolkit 12.x を https://developer.nvidia.com/cuda-downloads からインストールし
+#          C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.x\bin を PATH に追加すること
+nvidia-cublas-cu12>=12.0.0
+nvidia-cudnn-cu12>=9.0.0
+nvidia-cuda-runtime-cu12>=12.0.0
+
+# マイク入力・音声処理
+sounddevice>=0.4.6
+numpy>=1.26.0
+
+# 音声区間検出（ビルド不要のプリビルド版）
+webrtcvad-wheels>=2.0.10.post1
+
+# ベクトルデータベース
+chromadb>=0.5.0
+
+# HTTP クライアント（Ollama API 通信）
+requests>=2.31.0
+
+# TTS: Piper（ローカル ONNX 英語音声合成）
+# piper-tts 1.4+ は espeak-ng を内包しており piper-phonemize は不要
+# https://github.com/OHF-Voice/piper1-gpl
+piper-tts>=1.4.0
+
+# TTS 音声再生（ビルド不要 - Windows WinMM API 使用）
+soundfile>=0.12.1
+sounddevice>=0.4.6  # 再生にも兼用
+
+# ダウンロード進捗表示
+tqdm>=4.66.0
+
+# データ検証・設定（標準ライブラリ補完）
+# dataclasses は Python 3.10+ 標準
+
+# オプション：音声ファイル操作
+
+pydub>=0.25.1
