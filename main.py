@@ -104,6 +104,14 @@ def _extract_english(text: str) -> str:
     return text  # fallback: speak full text if no tag found
 
 
+def _extract_japanese(text: str) -> str:
+    """Return only the [JA] portion of a bilingual response for SAPI TTS."""
+    match = re.search(r'\[JA\]\s*(.+?)$', text, re.DOTALL)
+    if match:
+        return match.group(1).strip()
+    return ""
+
+
 class CompanionController:
     """
     全コンポーネントを統合するアプリケーションコントローラ。
@@ -246,13 +254,17 @@ class CompanionController:
                 except Exception as e:
                     logger.warning("記憶保存失敗（スキップ）: %s", e)
 
-                # ── TTS 再生（English のみ読み上げ） ─────
+                # ── TTS 再生（日本語優先: SAPI → 英語フォールバック: Piper） ──
                 # マイクをミュートして TTS 音声の自己入力を防ぐ
                 if self._listener:
                     self._listener.mute()
                 try:
                     if self._tts_svc:
-                        self._tts_svc.speak(_extract_english(response))
+                        ja_text = _extract_japanese(response)
+                        if ja_text and self._tts_svc.has_japanese_tts:
+                            self._tts_svc.speak_japanese(ja_text)
+                        else:
+                            self._tts_svc.speak(_extract_english(response))
                 except TTSError as e:
                     logger.error("TTS 再生エラー: %s", e)
                 finally:

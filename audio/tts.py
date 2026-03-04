@@ -1,12 +1,14 @@
 """
 Piper TTS を使ったローカル英語音声合成モジュール。
 ONNX モデルをオフラインで読み込み、sounddevice で再生する。
+日本語読み上げは Windows SAPI（pyttsx3）へのフォールバックで対応する。
 """
 
 from __future__ import annotations
 
 import io
 import logging
+import platform
 import threading
 import wave
 
@@ -36,6 +38,7 @@ class TTSService:
         self._stop_event = threading.Event()
         self._lock = threading.Lock()
         self._voice = self._load_voice()
+        self._sapi_voice_id: str | None = self._find_sapi_japanese_voice()
 
     def _load_voice(self):
         """Piper ONNX モデルをロードする。"""
@@ -141,3 +144,67 @@ class TTSService:
         """現在の再生を停止する（次の発話開始前に呼び出す）。"""
         self._stop_event.set()
         sd.stop()
+
+    @property
+    def has_japanese_tts(self) -> bool:
+        """SAPI 日本語音声が利用可能かどうか。"""
+        return self._sapi_voice_id is not None
+
+    # ── Windows SAPI 日本語フォールバック ────────────────────────────
+
+    def _find_sapi_japanese_voice(self) -> str | None:
+        """
+        pyttsx3 経由で Windows SAPI の日本語音声 ID を返す。
+        Windows 以外の環境、またはインストールされていない場合は None を返す。
+        """
+        if platform.system() != "Windows":
+            logger.info("Windows 以外の環境のため SAPI 日本語 TTS は無効です。")
+            return None
+        try:
+            import pyttsx3  # type: ignore
+            engine = pyttsx3.init()
+            voices = engine.getProperty("voices")
+            for v in voices:
+                name_lower = v.name.lower()
+                langs = v.languages or []
+                lang_str = "".join(langs).lower()
+                if "japanese" in name_lower or "haruka" in name_lower or "ja" in lang_str:
+                    logger.info("SAPI 日本語音声を検出: %s", v.name)
+                    engine.stop()
+                    return v.id
+            logger.warning(
+                "SAPI 日本語音声が見つかりません。"
+                " Windows の設定から日本語音声パックを追加してください。"
+            )
+            engine.stop()
+        except ImportError:
+            logger.warning(
+                "pyttsx3 がインストールされていません。"
+                " pip install pyttsx3 を実行すると日本語 TTS が有効になります。"
+            )
+        except Exception as e:
+            logger.warning("SAPI 初期化エラー: %s", e)
+        return None
+
+    def speak_japanese(self, text: str) -> None:
+        """
+        Windows SAPI を使って日本語テキストを読み上げる（フォールバック）。
+        SAPI 日本語音声が利用できない場合は警告を出してスキップする。
+
+        Args:
+            text: 読み上げる日本語テキスト。
+        """
+        if not text.strip():
+            return
+        if self._sapi_voice_id is None:
+            logger.warning("SAPI 日本語 TTS が利用できないため日本語読み上げをスキップします。")
+            return
+        try:
+            import pyttsx3  # type: ignore
+            engine = pyttsx3.init()
+            engine.setProperty("voice", self._sapi_voice_id)
+            engine.say(text)
+            engine.runAndWait()
+            logger.info("SAPI 日本語 TTS 再生完了")
+        except Exception as e:
+            logger.error("SAPI 日本語 TTS 失敗: %s", e)
