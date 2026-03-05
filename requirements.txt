@@ -32,6 +32,11 @@ requests>=2.31.0
 # https://github.com/OHF-Voice/piper1-gpl
 piper-tts>=1.4.0
 
+# TTS: Windows SAPI 日本語音声（Microsoft Haruka 等）
+# 日本語音声パックがインストールされていれば日本語読み上げが有効になる
+# 未インストールの場合は英語 Piper にフォールバック
+pyttsx3>=2.90; sys_platform == "win32"
+
 # TTS 音声再生（ビルド不要 - Windows WinMM API 使用）
 soundfile>=0.12.1
 sounddevice>=0.4.6  # 再生にも兼用
@@ -45,6 +50,3 @@ tqdm>=4.66.0
 # オプション：音声ファイル操作
 
 pydub>=0.25.1
-
-pyttsx3
-
